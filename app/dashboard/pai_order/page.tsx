@@ -68,17 +68,31 @@ export default function PaymentPage() {
     } = usePayment();
 
     // ✅✅✅ [แทรกก้อนนี้เข้าไปตรงนี้เลยครับ!]
-    useFcmToken(currentUser?.id, () => {
-        console.log("📢 สัญญาณ FCM เข้า! โหลดข้อมูลและเช็กออเดอร์...");
-        // ครอบ try-catch ป้องกันเสียงพังแล้วหยุดทำงาน
+    // ✅✅✅ [แทรกก้อนนี้เข้าไปตรงนี้เลยครับ!]
+    useFcmToken(currentUser?.id, (payload: any) => { // 🌟 1. รับ payload เข้ามา
+        console.log("📢 สัญญาณ FCM เข้า! โหลดข้อมูลและเช็กออเดอร์...", payload);
+        
         try {
-            fetchAndProcessOrders(); 
+            // ดึงประเภทของการแจ้งเตือนออกมาเช็ค
+            const msgType = payload?.data?.type || payload?.type || '';
+            const msgTitle = payload?.data?.title || payload?.notification?.title || '';
+
+            // ส่ง payload ไปให้เครื่องจักรหลักเช็คด้วย
+            fetchAndProcessOrders(payload); 
             refreshTables(); 
-            playSound(); // ถ้าจอดับ/ยังไม่แตะจอ เสียงอาจจะไม่ดัง แต่มันจะไม่ทำให้ fetchAndProcessOrders พัง
+
+            // 🌟 2. ด่านกักเสียง: เช็คก่อนว่าใช่การอัปเดตเงียบไหม ค่อยสั่งเล่นเสียง
+            if (msgType === 'SILENT_UPDATE' || msgType === 'ANDROID_REFRESH' || msgTitle.includes('อัปเดต')) {
+                console.log("🔇 เงียบ: ไม่ส่งเสียงเพราะเป็นการเคลียร์โต๊ะ");
+            } else {
+                playSound(); // 🔔 เล่นเสียงเฉพาะกรณีที่เป็นออเดอร์ใหม่จริงๆ
+            }
+
         } catch (e) {
             console.warn("FCM Handler Error (อาจเกิดจาก Autoplay blocked):", e);
         }
     });
+    // ==========================================
     // ==========================================
 
     const [showMobileCart, setShowMobileCart] = useState(false);
