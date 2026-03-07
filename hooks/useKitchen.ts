@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+// ลบ import { supabase } from '@/lib/supabase'; ออกเพราะเราไม่ใช้ Realtime แล้ว
 import { 
     restoreOrderItemAction, 
     getKitchenOrdersAction, 
@@ -18,7 +18,7 @@ export function useKitchen() {
     const [autoAccept, setAutoAccept] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     
-    // State เช็คว่าเสียงพร้อมใช้งานหรือยัง (เริ่มมาเป็น false)
+    // State เช็คว่าเสียงพร้อมใช้งานหรือยัง
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
     
     const autoAcceptRef = useRef(autoAccept);
@@ -31,33 +31,32 @@ export function useKitchen() {
         }
     }, []);
 
-    // ✅ ฟังก์ชันเล่นเสียง (ใช้แจ้งเตือนเมื่อมีออเดอร์)
-    const playSound = () => {
+    // ✅ ฟังก์ชันเล่นเสียง
+    const playSound = useCallback(() => {
         if (!audioRef.current) return;
         const audio = audioRef.current;
         audio.volume = 1.0;
         audio.currentTime = 0;
         audio.play().catch(err => console.warn("Audio blocked:", err));
-    };
+    }, []);
 
-    // ✅ ฟังก์ชันปลดล็อกเสียง (ใช้ผูกกับปุ่มใน Modal เริ่มงาน)
+    // ✅ ฟังก์ชันปลดล็อกเสียง
     const unlockAudio = () => {
         if (!audioRef.current) return;
         const audio = audioRef.current;
         
-        // เล่นเสียงเงียบๆ 1 ที เพื่อหลอก Browser ว่า User อนุญาตแล้ว
         audio.volume = 0.0; 
         audio.play().then(() => {
             audio.pause();
             audio.currentTime = 0;
-            audio.volume = 1.0; // คืนค่าความดัง
-            setIsAudioUnlocked(true); // ✅ จำค่าว่าปลดล็อกแล้ว
+            audio.volume = 1.0; 
+            setIsAudioUnlocked(true); 
         }).catch(err => {
             console.error("Unlock failed:", err);
         });
     };
 
-    // ✅ Toggle Auto Accept (แค่เปลี่ยนค่า ไม่ต้องยุ่งเรื่องเสียงแล้ว)
+    // ✅ Toggle Auto Accept
     const toggleAutoAccept = () => {
         setAutoAccept(prev => !prev);
     };
@@ -82,34 +81,71 @@ export function useKitchen() {
         }
     }, [autoAccept, isInitialized]);
 
-    // --- Realtime Logic ---
-    const fetchOrders = async () => {
+    // --- โหลดข้อมูลออเดอร์ ---
+    const fetchOrders = useCallback(async () => {
         const result = await getKitchenOrdersAction();
         if (result.success) setOrders(result.data || []);
         setLoading(false);
-    };
-
-    useEffect(() => {
-        fetchOrders();
-        const channel = supabase.channel('kitchen_realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async (payload) => {
-                if (payload.eventType === 'INSERT' && payload.new.status === 'pending') {
-                    // เล่นเสียงแจ้งเตือนเสมอ (ถ้าปลดล็อกแล้ว)
-                    playSound();
-
-                    // Logic Auto Accept
-                    if (autoAcceptRef.current) {
-                        await updateOrderStatusAction(payload.new.id, 'preparing');
-                        console.log(`🤖 Auto Accepted Order: ${payload.new.id}`);
-                    }
-                }
-                fetchOrders();
-            })
-            .subscribe();
-        return () => { supabase.removeChannel(channel); };
     }, []);
 
-    // --- Handlers (ส่วนเดิม ไม่ตัดออก) ---
+    // ตอนเปิดหน้าเว็บครั้งแรก ให้ดึงข้อมูล 1 ครั้ง (ลบ Realtime ทิ้งไปแล้ว)
+    useEffect(() => {
+        fetchOrders();
+    }, [fetchOrders]);
+
+    // ==========================================================
+    // 🌟 ฟังก์ชันหลักสำหรับ FCM (แทนที่ Realtime) มีด่านกักเสียง
+    // ==========================================================
+    const fetchAndProcessKitchenOrders = useCallback(async (payload?: any) => {
+        console.log("⚡ [Kitchen] สัญญาณ FCM เข้า!", JSON.stringify(payload));
+
+        const msgType = payload?.data?.type || payload?.type || '';
+        const msgTitle = payload?.data?.title || payload?.notification?.title || '';
+        const msgBody = payload?.data?.message || payload?.data?.body || '';
+
+        // 🛑 ด่านกักเสียง: เช็คว่าเป็นคำสั่งเคลียร์โต๊ะ หรืออัปเดตสถานะเฉยๆ ไหม
+        if (
+            msgType === 'SILENT_UPDATE' || 
+            msgType === 'ANDROID_REFRESH' || 
+            msgTitle.includes('อัปเดต') || 
+            msgBody.includes('อัปเดต')
+        ) {
+            console.log("🔄 [Kitchen] อัปเดตสถานะเงียบๆ: โหลดข้อมูลใหม่ (ไม่ส่งเสียง)");
+            await fetchOrders(); // แค่รีเฟรชจอให้ข้อมูลอัปเดต
+            return; // หยุดการทำงาน ไม่ให้ลงไปเปิดเสียง หรือ Auto Accept
+        }
+
+        // ==========================================================
+        // 🔔 ถ้าเป็นออเดอร์ใหม่จริงๆ จะทำงานตรงนี้
+        // ==========================================================
+        console.log("🔔 [Kitchen] ออเดอร์ใหม่! เล่นเสียงและตรวจสอบ Auto Accept...");
+        playSound();
+
+        // โหลดข้อมูลล่าสุดจาก Cloud
+        const result = await getKitchenOrdersAction();
+        if (result.success && result.data) {
+            const currentOrders = result.data;
+            setOrders(currentOrders); // อัปเดตหน้าจอทันที
+
+            // 🤖 ระบบ Auto Accept (รับออเดอร์อัตโนมัติ)
+            if (autoAcceptRef.current) {
+                let hasUpdated = false;
+                for (const order of currentOrders) {
+                    if (order.status === 'pending') {
+                        await updateOrderStatusAction(order.id, 'preparing');
+                        console.log(`✅ [Kitchen] Auto Accepted: ${order.id}`);
+                        hasUpdated = true;
+                    }
+                }
+                // ถ้าระบบจัดการรับออเดอร์ไปแล้ว ให้ดึงข้อมูลมาวาดใหม่อีกรอบ
+                if (hasUpdated) {
+                    await fetchOrders();
+                }
+            }
+        }
+    }, [fetchOrders, playSound]);
+
+    // --- Handlers (เหมือนเดิม) ---
     const handleUpdateStatus = async (orderId: string, nextStatus: string) => {
         if (nextStatus === 'done') {
             setOrders(prev => prev.filter(o => o.id !== orderId));
@@ -175,7 +211,8 @@ export function useKitchen() {
         handleUpdateStatus, fetchOrders,
         autoAccept, toggleAutoAccept,
         handleCancelOrder, handleCancelItem, handleRestoreItem,
-        unlockAudio, // ✅ ส่งฟังก์ชันปลดล็อกออกไป
-        isAudioUnlocked // ✅ ส่งสถานะออกไป
+        unlockAudio, 
+        isAudioUnlocked,
+        fetchAndProcessKitchenOrders // ✅ โยนฟังก์ชันนี้ออกไปให้หน้า Page ใช้งาน
     };
 }

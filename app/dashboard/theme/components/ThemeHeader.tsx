@@ -18,53 +18,45 @@ export default function ThemeHeader({
   filterLifetime, toggleLifetimeFilter 
 }: ThemeHeaderProps) {
   return (
-    <div className="w-full bg-[#f8fafc] pt-8 pb-6 px-4 md:px-10 border-none">
-      {/* ✅ แก้ไข: items-start (มือถือชิดซ้าย) -> md:items-end (จอใหญ่ชิดล่างเหมือนเดิม) */}
-      <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+    /* ✅ ปรับ px-6 และ md:px-10 เพื่อให้ชิดขอบซ้าย-ขวาเท่าเดิม ไม่เบียดเข้ากลาง */
+    <div className="w-full bg-[#f8fafc] pt-4 md:pt-10 pb-2 md:pb-6 px-6 md:px-10 border-none">
+      
+  
+      <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-end gap-4 md:gap-6">
           
-          {/* ส่วนข้อความและปุ่ม Lifetime */}
-          <div className="flex flex-col items-start"> {/* ✅ ย้ำ items-start ตรงนี้ด้วย */}
-              <h1 className="text-3xl font-black text-slate-900 tracking-tighter italic uppercase leading-none">MY THEMES</h1>
+          <div className="flex flex-col items-start w-full md:w-auto"> 
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter italic uppercase leading-none">MY THEMES</h1>
               
-              <div className="flex items-center gap-3 mt-2">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">MANAGED COLLECTION</p>
+              <div className="flex items-center gap-3 mt-2 md:mt-3">
+                <p className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">MANAGED COLLECTION</p>
                 
                 {lifetimeCount > 0 && (
                     <button 
                         onClick={toggleLifetimeFilter}
-                        className={`
-                            inline-flex items-center gap-1.5 text-[9px] font-black uppercase px-3 py-1 rounded-full border transition-all duration-200 active:scale-95 outline-none
-                            ${filterLifetime 
-                                ? 'bg-amber-500 text-white border-amber-600 shadow-md shadow-amber-200 ring-2 ring-amber-100'
-                                : 'bg-white text-amber-600 border-amber-100 hover:border-amber-300 hover:bg-amber-50 shadow-sm'
-                            }
-                        `}
+                        className={`inline-flex items-center gap-1.5 text-[9px] md:text-[10px] font-black uppercase px-3 py-1 rounded-full border transition-all duration-200 active:scale-95 outline-none ${filterLifetime ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-100' : 'bg-white text-amber-600 border-amber-100 hover:border-amber-300 hover:bg-amber-50 shadow-sm'}`}
                     >
                         <IconCrown size={12} className={filterLifetime ? "stroke-white" : "stroke-amber-600"} />
-                        {filterLifetime ? `SHOWING ${lifetimeCount} LIFETIME` : `${lifetimeCount} LIFETIME`}
-                        {filterLifetime && <span className="ml-1 bg-white/20 px-1.5 rounded-full text-[8px]">×</span>}
+                        {filterLifetime ? `SHOWING ${lifetimeCount}` : `${lifetimeCount} LIFETIME`}
                     </button>
                 )}
               </div>
           </div>
           
-          {/* ปุ่มสลับ Tab (Active/History) */}
-          {/* ✅ เพิ่ม w-full md:w-auto เพื่อให้มือถือปุ่มยาวเต็ม หรือจะชิดซ้ายก็ได้ตามดีไซน์ */}
-          <div className="flex bg-slate-200/50 p-1 rounded-full relative self-start md:self-auto"> 
+          <div className="flex w-full md:w-auto bg-slate-200/50 p-1.5 rounded-full relative"> 
               <button 
                   onClick={() => setActiveTab('active')}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-300 ${activeTab === 'active' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 md:px-8 py-2 md:py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-300 ${activeTab === 'active' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                  <IconGrid /> Active
+                  <IconGrid size={16} /> Active
               </button>
               
               <button 
                   onClick={() => setActiveTab('history')}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-300 relative ${activeTab === 'history' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 md:px-8 py-2 md:py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-300 relative ${activeTab === 'history' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                  <IconHistory /> History
+                  <IconHistory size={16} /> History
                   {expiredCount > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] text-white shadow-sm animate-bounce">
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] text-white shadow-sm font-bold border-2 border-white animate-bounce">
                           {expiredCount}
                       </span>
                   )}
