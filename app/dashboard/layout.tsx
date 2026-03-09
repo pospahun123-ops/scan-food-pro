@@ -143,6 +143,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {navItems.map((item: any, idx) => {
             if (item.hidden) return null;
             if (item.ownerOnly && !isOwner) return null;
+            const isActive = item.href === '/dashboard' 
+    ? pathname === '/dashboard' // ถ้าเป็นหน้า Dashboard หลัก ต้องชื่อตรงกันเป๊ะๆ เท่านั้น
+    : pathname.startsWith(item.href) && item.href !== '#'; // หน้าอื่นๆ ใช้ startsWith เหมือนเดิม (เพื่อรองรับ sub-page)
 
             return item.separator ? (
               <div key={idx} className="my-4 flex items-center gap-4 mx-4">
@@ -162,11 +165,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     : item.isGold 
                     ? 'bg-gradient-to-r from-amber-100 to-yellow-50 text-amber-700 shadow-sm shadow-amber-100 border border-amber-200 hover:scale-105' 
                     // 🌟 ทำให้เมนูคลังสินค้า Active เมื่ออยู่หน้าลูกๆ ของ inventory ด้วย
-                    : pathname.startsWith(item.href) && item.href !== '#'
-                      ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' 
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-blue-600'
-                  }`}
-              >
+                    : isActive
+            ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' 
+            : 'text-slate-500 hover:bg-slate-50 hover:text-blue-600'
+        }`}
+    >
                 {item.isMagic && (
                     <>
                         <div className="absolute top-1 right-2 text-[9px] opacity-70 animate-pulse">✨</div>

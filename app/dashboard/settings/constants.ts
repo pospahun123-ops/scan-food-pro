@@ -6,9 +6,10 @@ export const PLANS = {
     themes: '2 ธีม', 
     orders: '100 ออเดอร์/เดือน', 
     features: [
+      'คิดเงินหน้าร้านไม่จำกัด',
       'เลือกได้ 2 ธีม',
       'รองรับ 100 ออเดอร์/เดือน',
-      'Dashboard ย้อนหลัง 60 วัน',
+      'Dashboard ย้อนหลัง 30 วัน',
     ], 
     color: 'border-slate-200', 
     btnColor: 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
@@ -46,6 +47,7 @@ export const PLANS = {
       'Export รายงาน (Excel)',
 
       'ระบบพนักงาน',
+      'ระบบพนักงานสูงสุด3',
       'กำหนดสิทธิ์พนักงาน',
       
     ], 
