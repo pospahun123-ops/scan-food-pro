@@ -273,7 +273,7 @@ export const useShopLogic = (params: any) => {
     });
   };
 
-  // --- Checkout Action ---
+ // --- Checkout Action ---
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     
@@ -298,17 +298,40 @@ export const useShopLogic = (params: any) => {
       setActiveTab('status');
       setOrdersList(transformOrdersForDisplay(result.orders || [])); 
 
-      // 🚨🚨🚨 [แทรกตรงนี้!] ยิงแจ้งเตือนไปหาพนักงาน (FCM) 🚨🚨🚨
+      // 🚨🚨🚨 [แทรกตรงนี้!] ยิงแจ้งเตือนไปหาพนักงาน (FCM) พร้อมสั่งปริ้นออโต้ 🚨🚨🚨
       try {
-          await fetch('/api/send-notification', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                  brandId: brandId, 
-                  message: `มีออเดอร์ใหม่จาก โต๊ะ ${tableLabel}!` 
-              }),
-          });
-          console.log("📢 ส่งแจ้งเตือนหาพนักงานสำเร็จ!");
+          // 🌟 ดึงออเดอร์ล่าสุดที่เพิ่งถูกบันทึกลง Database (มักจะอยู่ Index 0 เพราะ Order by created_at desc)
+          const newOrder = result.orders?.[0]; 
+
+          if (newOrder) {
+              // 🌟 เตรียมข้อมูล orderData ให้ตรงสเปกที่ Android ต้องการ
+              const orderDataToPrint = {
+                  tableName: String(newOrder.table_label || tableLabel),
+                  time: new Date().toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                  orderId: String(newOrder.id).slice(0, 8),
+                  items: newOrder.order_items.map((item: any) => ({
+                      name: String(item.product_name),
+                      qty: Number(item.quantity),
+                      variant: String(item.variant || ""),
+                      note: String(item.note || ""),
+                      isCancelled: false
+                  }))
+              };
+
+              // ยิง API แจ้งเตือน พร้อมแนบ orderData
+              await fetch('/api/send-notification', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                      brandId: brandId, 
+                      title: "มีออเดอร์ใหม่!",
+                      message: `โต๊ะ ${tableLabel} สั่งอาหาร`,
+                      type: "NEW_ORDER",
+                      orderData: orderDataToPrint // 🌟 ยัดใส่ตรงนี้!
+                  }),
+              });
+              console.log("📢 ส่งแจ้งเตือนและส่งข้อมูลเข้าเครื่องปริ้นเบื้องหลังสำเร็จ!");
+          }
       } catch (notifErr) {
           console.error("⚠️ ไม่สามารถส่งแจ้งเตือนได้:", notifErr);
           // ไม่ต้อง throw error ออกไป เพราะถึงแจ้งเตือนไม่ไป แต่ออเดอร์ก็เข้า DB แล้ว

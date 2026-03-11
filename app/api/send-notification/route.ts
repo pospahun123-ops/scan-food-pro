@@ -15,9 +15,10 @@ if (!admin.apps.length) {
 
 export async function POST(request: Request) {
   try {
-    const { brandId, message, type = 'NEW_ORDER', title = 'มีออเดอร์ใหม่!' } = await request.json();
+    // 🌟 1. เพิ่มการรับค่า orderData เข้ามาด้วย
+    const { brandId, message, type = 'NEW_ORDER', title = 'มีออเดอร์ใหม่!', orderData } = await request.json();
 
-    // 🌟 1. ดึงมาทั้ง fcm_token (แอป) และ fcm_token_web (เว็บ)
+    // ดึงมาทั้ง fcm_token (แอป) และ fcm_token_web (เว็บ)
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('fcm_token, fcm_token_web')
@@ -27,24 +28,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'ไม่พบข้อมูลพนักงาน' });
     }
 
-    // 🌟 2. นำ Token จากทั้ง 2 คอลัมน์มารวมกัน (ข้ามค่า null หรือว่างเปล่า)
+    // นำ Token จากทั้ง 2 คอลัมน์มารวมกัน (ข้ามค่า null หรือว่างเปล่า)
     const tokens = profiles.flatMap(p => [p.fcm_token, p.fcm_token_web]).filter(Boolean) as string[];
 
     if (tokens.length === 0) {
       return NextResponse.json({ success: false, message: 'ไม่พบ Token ใดๆ สำหรับส่งแจ้งเตือน' });
     }
 
-    // 3. ยิงแจ้งเตือนแบบ Data-Only
+    // 🌟 2. เตรียมข้อมูล Payload (กฎของ FCM คือทุก value ต้องเป็น String)
+    const notificationData: { [key: string]: string } = {
+      title: title,
+      body: message || 'กรุณาตรวจสอบหน้าจอ POS',
+      type: type 
+    };
+
+    // 🌟 3. ถ้ามีการส่ง orderData มา ให้ยัดใส่เข้าไปด้วย
+    if (orderData) {
+      // เช็คให้ชัวร์ว่าเป็น String ถ้าเป็น Object ให้แปลงเป็น String ก่อน
+      notificationData.orderData = typeof orderData === 'string' ? orderData : JSON.stringify(orderData);
+    }
+
+    // ยิงแจ้งเตือนแบบ Data-Only
     const response = await admin.messaging().sendEachForMulticast({ 
       tokens: tokens,
       android: {
         priority: 'high', 
       },
-      data: {
-        title: title,
-        body: message || 'กรุณาตรวจสอบหน้าจอ POS',
-        type: type 
-      }
+      data: notificationData // 🌟 ส่งก้อน Data ที่เตรียมไว้ไปให้ Android
     });
 
     return NextResponse.json({ success: true, response });

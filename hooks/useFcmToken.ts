@@ -36,10 +36,10 @@ export const useFcmToken = (userId: string | undefined, onMessageReceived: (payl
             }
         };
 
-        // ฟังก์ชันรับคำสั่ง Refresh หน้าจอจาก Android
-        (window as any).triggerRefreshFromAndroid = () => {
-            // 🌟 แก้ไขตรงนี้: ส่งค่าหลอกไปบอกว่าเป็นคำสั่งจากแอป Android
-            savedCallback.current({ data: { type: 'ANDROID_REFRESH' } }); 
+       // ฟังก์ชันรับคำสั่ง Refresh หน้าจอจาก Android
+        (window as any).triggerRefreshFromAndroid = (updateType: string = 'NEW_ORDER') => {
+            // 🌟 รับค่า type จาก Android ส่งเข้าไปให้ useKitchen จัดการ
+            savedCallback.current({ data: { type: updateType } }); 
         };
 
         // 🌟 ดักจับกรณีที่ Android โยน Token มาให้ก่อนที่ React จะโหลดเสร็จ
