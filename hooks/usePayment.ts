@@ -595,14 +595,17 @@ if (typeof window !== 'undefined' && (window as any).AndroidBridge) {
                     calcTotalDiscount += (savedPerUnit * Number(item.quantity));
                 }
 
+                // 🌟 เพิ่มบรรทัดนี้: แปลง variant เป็นภาษาไทยก่อนส่งปริ้น
+                let variantTh = item.variant === 'special' ? 'พิเศษ' : item.variant === 'jumbo' ? 'จัมโบ้' : '';
+
                 return {
                     name: String(item.product_name || item.name || "รายการอาหาร"), 
                     qty: Number(item.quantity), 
                     price: Number(item.price), 
                     isCancelled: isCancelled, 
-                    variant: String(item.variant || 'normal'), 
+                    variant: variantTh, // 🌟 เปลี่ยนตรงนี้ให้ใช้ตัวแปรภาษาไทย
                     note: String(item.note || ''),
-                    discount: savedPerUnit * Number(item.quantity) // 🌟 เพิ่มบรรทัดนี้: ส่งส่วนลดต่อรายการไปให้ Android
+                    discount: savedPerUnit * Number(item.quantity)
                 };
             });
 
