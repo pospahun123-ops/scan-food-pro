@@ -1,4 +1,4 @@
-// app/dashboard/pai_order_master/page.tsx
+// app/dashboard/pai_order/page.tsx
 'use client';
 import { Html5Qrcode } from 'html5-qrcode';
 import React, { useState, useEffect, useRef } from 'react';
