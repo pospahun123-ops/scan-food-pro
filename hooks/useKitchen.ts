@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+// ลบ import { supabase } from '@/lib/supabase'; ออกเพราะเราไม่ใช้ Realtime แล้ว
 import { 
     restoreOrderItemAction, 
     getKitchenOrdersAction, 
@@ -22,13 +23,6 @@ export function useKitchen() {
     
     const autoAcceptRef = useRef(autoAccept);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-
-    // 🌟 1. เพิ่มตัวนี้เพื่อคอยจำว่าออเดอร์ที่มีบนจอตอนนี้มีอะไรบ้าง จะได้เช็คได้ว่าอันไหนของใหม่
-    const ordersRef = useRef<any[]>([]); 
-
-    useEffect(() => {
-        ordersRef.current = orders; // อัปเดตข้อมูลเก็บไว้ทุกครั้งที่หน้าจอเปลี่ยน
-    }, [orders]);
 
     // ✅ สร้าง Audio Object รอไว้
     useEffect(() => {
@@ -94,12 +88,13 @@ export function useKitchen() {
         setLoading(false);
     }, []);
 
+    // ตอนเปิดหน้าเว็บครั้งแรก ให้ดึงข้อมูล 1 ครั้ง (ลบ Realtime ทิ้งไปแล้ว)
     useEffect(() => {
         fetchOrders();
     }, [fetchOrders]);
 
     // ==========================================================
-    // 🌟 ฟังก์ชันหลักสำหรับ FCM มีด่านกักเสียง + 🖨️ Auto Print
+    // 🌟 ฟังก์ชันหลักสำหรับ FCM (แทนที่ Realtime) มีด่านกักเสียง
     // ==========================================================
     const fetchAndProcessKitchenOrders = useCallback(async (payload?: any) => {
         console.log("⚡ [Kitchen] สัญญาณ FCM เข้า!", JSON.stringify(payload));
@@ -115,62 +110,24 @@ export function useKitchen() {
             msgTitle.includes('อัปเดต') || 
             msgBody.includes('อัปเดต')
         ) {
-            console.log("🔄 [Kitchen] อัปเดตสถานะเงียบๆ: โหลดข้อมูลใหม่ (ไม่ส่งเสียง ไม่ปริ้น)");
-            await fetchOrders(); 
-            return; 
+            console.log("🔄 [Kitchen] อัปเดตสถานะเงียบๆ: โหลดข้อมูลใหม่ (ไม่ส่งเสียง)");
+            await fetchOrders(); // แค่รีเฟรชจอให้ข้อมูลอัปเดต
+            return; // หยุดการทำงาน ไม่ให้ลงไปเปิดเสียง หรือ Auto Accept
         }
 
-        console.log("🔔 [Kitchen] ออเดอร์ใหม่! เล่นเสียงและตรวจสอบ Auto Print & Auto Accept...");
+        // ==========================================================
+        // 🔔 ถ้าเป็นออเดอร์ใหม่จริงๆ จะทำงานตรงนี้
+        // ==========================================================
+        console.log("🔔 [Kitchen] ออเดอร์ใหม่! เล่นเสียงและตรวจสอบ Auto Accept...");
         playSound();
 
         // โหลดข้อมูลล่าสุดจาก Cloud
         const result = await getKitchenOrdersAction();
         if (result.success && result.data) {
             const currentOrders = result.data;
-            const previousOrders = ordersRef.current;
-
-            // 🌟 หาว่าออเดอร์ไหนเป็น "ของใหม่" (มีใน current แต่ไม่มีใน previous)
-            const newOrders = currentOrders.filter((newOrder: any) => 
-                !previousOrders.some((oldOrder: any) => oldOrder.id === newOrder.id)
-            );
-
             setOrders(currentOrders); // อัปเดตหน้าจอทันที
 
-            // ==========================================================
-            // 🖨️ ระบบ Auto Print (ปริ้นอัตโนมัติเฉพาะออเดอร์ใหม่)
-            // ==========================================================
-            newOrders.forEach(order => {
-                if (typeof window !== 'undefined' && (window as any).AndroidBridge) {
-                    console.log("🖨️ [Auto Print] กำลังสั่งปริ้นออเดอร์ใหม่ โต๊ะ:", order.table_label);
-                    try {
-                        const safeItems = (order.order_items || []).map((item: any) => ({
-                            name: String(item.product_name || "ไม่ระบุชื่ออาหาร"),
-                            qty: Number(item.quantity || 1),
-                            variant: String(item.variant || ""),
-                            note: String(item.note || ""),
-                            isCancelled: Boolean(item.status === 'cancelled')
-                        }));
-
-                        const printData = {
-                            tableName: String(order.table_label || "ไม่ระบุ"),
-                            time: new Date().toLocaleString('th-TH', { 
-                                hour: '2-digit', minute: '2-digit', second: '2-digit' 
-                            }),
-                            orderId: String((order.id || "").slice(0, 8)),
-                            items: safeItems
-                        };
-
-                        // สั่งยิงไปที่ Android
-                        (window as any).AndroidBridge.printKitchenTicket(JSON.stringify(printData));
-                    } catch (err) {
-                        console.error("❌ [Auto Print] Error:", err);
-                    }
-                }
-            });
-
-            // ==========================================================
             // 🤖 ระบบ Auto Accept (รับออเดอร์อัตโนมัติ)
-            // ==========================================================
             if (autoAcceptRef.current) {
                 let hasUpdated = false;
                 for (const order of currentOrders) {
