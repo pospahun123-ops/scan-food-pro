@@ -124,7 +124,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
 
-      {/* 🔴 ส่วน Sidebar & Backdrop (ย้ายมาไว้ข้างล่างสุด และใช้ z-index สูงสุด) */}
+      {/* 🔴 ส่วน Sidebar & Backdrop */}
       
       {/* Backdrop: z-[9998] */}
       <div 
@@ -134,16 +134,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Sidebar: z-[9999] */}
       <aside className={`fixed top-0 left-0 h-screen w-64 bg-white z-[9999] transition-transform duration-300 ease-out shadow-2xl border-r border-slate-100 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="h-16 min-h-[64px] px-5 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="text-indigo-600 bg-indigo-50 p-2 rounded-xl shadow-sm border border-indigo-100"><IconQRCode size={24} /></div>
-            <span className="font-black text-xl tracking-tighter bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Scan-Food</span>
+        
+        {/* 🌟 ส่วนหัว Sidebar: โลโก้ และ ปุ่ม Logout แบบเล็กๆ อยู่ข้างใต้ */}
+        <div className="px-5 py-4 border-b border-slate-100 bg-white shrink-0 relative flex justify-between items-start">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3">
+              <div className="text-indigo-600 bg-indigo-50 p-2 rounded-xl shadow-sm border border-indigo-100">
+                <IconQRCode size={20} />
+              </div>
+              <span className="font-black text-xl tracking-tighter bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Scan-Food</span>
+            </div>
+            
+            {/* ปุ่ม Logout ไซส์มินิ แปะใต้โลโก้ */}
+            <button 
+              onClick={handleLogout} 
+              className="text-[11px] text-slate-400 hover:text-red-500 flex items-center gap-1.5 mt-0.5 ml-11 font-bold transition-colors w-max"
+            >
+              <IconLogOut size={14} /> ออกจากระบบ
+            </button>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-full text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all active:scale-90">
+
+          <button onClick={() => setSidebarOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all active:scale-90 mt-1">
             <IconX size={20} />
           </button>
         </div>
 
+        {/* เมนู Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1.5 custom-scrollbar">
           {navItems.map((item: any, idx) => {
             if (item.hidden) return null;
@@ -175,12 +191,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             );
           })}
         </nav>
-
-        <div className="p-4 border-t border-slate-50 bg-white shrink-0">
-          <button onClick={handleLogout} className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95">
-            <IconLogOut size={16} /> ออกจากระบบ
-          </button>
-        </div>
+        
       </aside>
 
       <style jsx global>{`
