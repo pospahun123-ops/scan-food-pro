@@ -46,15 +46,15 @@ export async function fetchShopData(params: ShopParams) {
   const providedCode = combinedId?.substring(36);
 
   try {
-    // 1. ตรวจสอบ Table & Code
+    // 1. ตรวจสอบ Table (ไม่เช็ค access_token เพราะใช้ QR ติดโต๊ะถาวร)
     const { data: tableData, error: tableError } = await supabaseServer
       .from('tables')
-      .select('label, access_token')
+      .select('label')
       .eq('id', realTableId)
       .single();
 
-    if (tableError || !tableData || tableData.access_token !== providedCode) {
-      return { success: false, error: 'Invalid Table or Access Code' };
+    if (tableError || !tableData) {
+      return { success: false, error: 'Table Not Found' };
     }
 
     // 2. ตรวจสอบ Brand

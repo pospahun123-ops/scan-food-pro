@@ -185,18 +185,7 @@ export const useShopLogic = (params: any) => {
     return () => clearInterval(interval);
   }, [banners]);
 
-  // --- Realtime 1: Table Security Watcher ---
-  useEffect(() => {
-    if (!realTableId) return;
-    const channel = supabase.channel(`table_guard_${realTableId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tables', filter: `id=eq.${realTableId}` }, (payload) => {
-        if (payload.new.access_token !== providedCode) {
-            window.location.href = "https://google.com";
-        }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [realTableId, providedCode]);
+  // --- Realtime 1: Table Security Watcher (ปิดแล้ว — ใช้ QR ติดโต๊ะถาวร ไม่เช็ค token) ---
 
   // --- Realtime 2: Order Status Watcher ---
   useEffect(() => {
