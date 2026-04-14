@@ -307,13 +307,22 @@ export const useShopLogic = (params: any) => {
 
           if (newOrder) {
               // 🌟 เตรียมข้อมูล orderData ให้ตรงสเปกที่ Android ต้องการ
+              // 🌟 เตรียมข้อมูล orderData ให้ตรงสเปกที่ Android ต้องการแบบครบถ้วน
               const orderDataToPrint = {
+                  brandName: String(brand?.name || "ร้านค้า"), // 🌟 ส่งชื่อร้านไปด้วย
                   tableName: String(newOrder.table_label || tableLabel),
                   time: new Date().toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                   orderId: String(newOrder.id).slice(0, 8),
+                  
+                  // 🌟🌟🌟 เพิ่มยอดรวมส่งไปให้ Auto Print ด้วย! 🌟🌟🌟
+                  totalAmount: Number(newOrder.total_price || totalPrice || 0),
+                  subTotal: Number(newOrder.total_price || totalPrice || 0),
+
                   items: newOrder.order_items.map((item: any) => ({
                       name: String(item.product_name),
                       qty: Number(item.quantity),
+                      price: Number(item.price || 0), // 🌟 ไฟล์นี้ดันลืมส่ง price ของแต่ละเมนูไปด้วยซะงั้น!
+                      discount: Number(item.discount || 0),
                       variant: String(item.variant || ""),
                       note: String(item.note || ""),
                       isCancelled: false
