@@ -115,12 +115,16 @@ export async function getPaymentInitialDataAction() {
 // --- 2. Fetch Unpaid Orders ---
 export async function getUnpaidOrdersAction(brandId: string) {
     const supabase = await getSupabase();
-    const { data: rawOrders } = await supabase.from('orders')
+    const { data: rawOrders, error: ordersError } = await supabase.from('orders')
         .select(`*, order_items(*)`)
         .eq('brand_id', brandId)
         .in('status', ['pending', 'preparing', 'cooking', 'served', 'done'])
         .order('created_at', { ascending: false });
 
+    if (ordersError) {
+        console.error('[getUnpaidOrdersAction] Supabase error:', ordersError);
+        return [];
+    }
     if (!rawOrders) return [];
 
     const grouped: { [key: string]: any } = {};

@@ -215,7 +215,9 @@ export const useShopLogic = (params: any) => {
     };
 
     const channel = supabase.channel(`customer_order_watch_${realTableId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `brand_id=eq.${brandId}` }, () => refreshOrders())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `brand_id=eq.${brandId}` }, () => refreshOrders())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'order_items' }, () => refreshOrders())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'order_items' }, () => refreshOrders())
       .subscribe();
 
